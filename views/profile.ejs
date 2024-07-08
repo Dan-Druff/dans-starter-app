@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PROFILE</title>
+    <script src="https://www.gstatic.com/firebasejs/8.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.0/firebase-auth.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="navbar">
+        <ul class="navlist">
+          <li>
+            <a href="/">HOME</a>
+          </li>
+          <li>
+            <a href="/login">LOGIN</a>
+          </li>
+          <li>
+            <a href="/signup">SIGNUP</a>
+          </li>
+        </ul>
+      </div>
+      <div class="control">
+        <h2>PROFILE</h2>
+      </div>
+      <div class="appContainer" id="profDivID" data-token="<%=token%>">
+        <button id="testID">TEST DB</button>
+        <button id="logoutID">LOGOUT</button>
+        <hr />
+        <form id="imageUploadForm" enctype="multipart/form-data">
+          <input type="file" name="image" accept="image/*" required />
+          <button type="submit">Upload Image</button>
+        </form>
+
+        <div id="uploadStatus"></div>
+        <img
+          id="uploadedImage"
+          src=""
+          alt="Uploaded Image"
+          style="display: none"
+        />
+      </div>
+    </div>
+
+    <script>
+            const config = {
+              apiKeyPlaceHolder: "default",
+              authDomainPlaceHolder: "default",
+            };
+            window.addEventListener("DOMContentLoaded",()=>{
+              const testButton = document.getElementById("testID");
+              const logoutButt = document.getElementById("logoutID");
+              const form = document.getElementById("imageUploadForm");
+              const uploadStatus = document.getElementById("uploadStatus");
+              const uploadedImage = document.getElementById("uploadedImage");
+              const profDiv = document.getElementById("profDivID");
+              form.addEventListener("submit",async()=>{
+                  event.preventDefault();
+                  uploadStatus.textContent = "Uploading...";
+                  const formData = new FormData(form);
+                  try {
+                        const requiredFields = ["image"]; // Add any other required fields
+                        let allFieldsPresent = true;
+                        for (const [key, value] of formData.entries()) {
+                            if (requiredFields.includes(key)) {
+                            requiredFields.splice(requiredFields.indexOf(key), 1); // Remove from requiredFields array
+                            }
+                        }
+
+                        if (requiredFields.length > 0) {
+                        // Some required fields are missing
+                        console.error("Missing required fields:", requiredFields);
+                        uploadStatus.textContent = "Please fill in all required fields.";
+                        return; // Stop the upload process
+                        }
+                        
+                        const token = profDiv.dataset.token;
+                        const response = await fetch("/uploadAvatar", {
+                            method: "POST",
+                            body: formData,
+                            headers: {
+                                Authorization: `Bearer ${token}`,
+                            },
+                        });
+
+                        const data = await response.json();
+
+                        if (data.status) {
+                            console.log("Image uploaded successfully:", data.imageURL);
+                            uploadStatus.textContent = "Upload successful!";
+                            uploadedImage.src = data.imageURL;
+                            uploadedImage.style.display = "block";
+                        } else {
+                            console.error("Upload failed:", data.msg);
+                            uploadStatus.textContent = "Upload failed: " + data.msg;
+                        }
+                  } catch (error) {
+                    console.error("Error during upload:", error);
+                    uploadStatus.textContent = "An error occurred during upload.";
+                  }
+              })
+              logoutButt.addEventListener("click", async () => {
+                firebase.initializeApp(config);
+                await firebase.auth().signOut();
+                console.log(`Logged out`);
+                window.location.href = "/";
+              });
+              testButton.addEventListener("click", async () => {
+                const fetchRes = await fetch("/ping", {
+                  method: "POST",
+                });
+                const pingResult = await fetchRes.json();
+                if (pingResult.status) {
+                  console.log(`SUCCESS: ${pingResult.msg}`);
+                } else {
+                  console.log(`ERROR: ${pingResult.msg}`);
+                }
+              });
+            })
+            //--------------------------
+     
+    </script>
+  </body>
+</html>
